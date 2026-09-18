@@ -12,7 +12,7 @@ from pathlib import Path
 # 仓库根目录：本文件在 src/iccourse/ 下，往上两级才是项目根
 # （config.json / cookie.txt 都在那里，路径算错会读不到配置）。
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_DEST = "~/Desktop/语音课件"
+DEFAULT_DEST = "~/Desktop/课程资料/语音课件"
 # 已降级到拆分兜底的课次，隔这么多天才重试一次「升级回合并版」。
 # 理由：那类课次的两个导出 key 都已被服务端缓存锁死，短期内不会变好，
 # 每次都重试等于每轮白跑一遍导出 + 重下兜底；但万一服务端缓存哪天刷新了，
