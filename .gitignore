@@ -1,0 +1,25 @@
+# 敏感信息 —— 千万别提交
+config.json
+cookie.txt
+
+# 本地技术文档（接口逆向细节、实测记录、踩坑笔记）—— 只留本地，不上传
+notes/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# 同步产物（如果你把 dest 指到项目里）
+语音课件/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 编辑器
+.idea/
+.vscode/
+*.swp

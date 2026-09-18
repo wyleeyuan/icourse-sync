@@ -1,0 +1,26 @@
+{
+  "_comment": "复制成 config.json 后按需修改；只有 dest 是必须关心的。",
+
+  "dest": "~/Desktop/语音课件",
+  "_dest_comment": "产物目录。~ 展开成用户主目录（Windows 上是 C:/Users/你的名字）。若桌面被 OneDrive 接管导致路径不对，改成完整路径即可，正反斜杠都认。",
+
+  "tenant_code": "222",
+
+  "retry_fallback_days": 7,
+  "_retry_fallback_days_comment": "已降级为拆分兜底的课次隔几天自动重试一次「升级回合并版」",
+
+  "courses": {
+    "_comment": "include 为空=全部课程；exclude 用于排掉误选/旁听的课（子串匹配，不区分大小写）",
+    "include": [],
+    "exclude": []
+  },
+
+  "auth": {
+    "_comment": "auto=自动挑（cookie.txt > 浏览器 > bsk），逐个验证，第一个通的即采用；一般不用改",
+    "source": "auto",
+    "bsk_path": "~/.local/bin/bsk",
+    "_bsk_path_comment": "只有走 bsk 兜底路线时才用到。Windows 上 npm 装出来的是 bsk.cmd，留默认值也可以——脚本会再去 PATH 里找一遍。",
+    "cookie_file": "cookie.txt",
+    "browser": "edge"
+  }
+}
