@@ -13,10 +13,13 @@ import re
 
 BASE_URL = "https://icourse.fudan.edu.cn"
 EXPORT_TYPE = "1,2"      # 1=课件截图  2=语音识别原文（不含 3=译文）—— 原生形态，首选
-# 修复用：1+2+3 多一份译文，但它是**另一个缓存 key**。
-# 当 (sub_id, "1,2") 已被锁死成空壳时，用它生成完整文档、本地剥掉译文段，
-# 就能拿回等价于 "1,2" 的合并版（见 strip_translation）。
-EXPORT_MERGE_ALL = "1,2,3"
+# 修复用候选：`(sub_id, "1,2")` 被锁死成空壳时，换**别的缓存 key** 逐个重试，
+# 每多一个候选就多一次"救回合并版"的机会。
+#   1,2,3 —— 多一份英文译文，生成后本地剥掉即等价于 "1,2"（见 strip_translation）
+#   1,2,4 —— 多一份 AI 摘要，实测导出成 Word 时未混入正文，下载即用
+# ⚠️ 一个课次可能**多个 key 先后被污染**（同一节在识别跑完前被导出过两次就会这样，
+#    实测 sub_id=662773：1,2 与 1,2,3 双双锁死），所以是「逐个试」，不是「只试一个」。
+EXPORT_MERGE_CANDIDATES = ("1,2,3", "1,2,4")
 SUBTITLE_TYPE = "2"      # 兜底①：只取语音识别原文 -> _字幕.docx
 DECK_TYPE = "1"          # 兜底②：只取课件截图 -> _课件.pptx
 TRANS_TYPES = ("course_live", "olive", "video")

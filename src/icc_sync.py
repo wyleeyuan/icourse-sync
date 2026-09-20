@@ -40,8 +40,9 @@ from pathlib import Path
 # 这样 iccourse 包不论从哪个工作目录调用都能被找到。
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from iccourse.api import (DECK_TYPE, EXPORT_MERGE_ALL, EXPORT_TYPE, JS_TRANS,
-                          SUBTITLE_TYPE, TRANS_TYPES, _py_trans, spec, url_trans)
+from iccourse.api import (DECK_TYPE, EXPORT_MERGE_CANDIDATES, EXPORT_TYPE,
+                          JS_TRANS, SUBTITLE_TYPE, TRANS_TYPES, _py_trans, spec,
+                          url_trans)
 from iccourse.auth import (_save_cookie, candidate_backends, cmd_login,
                            verify_login)
 from iccourse.config import (DEFAULT_RETRY_FALLBACK_DAYS, PROJECT_ROOT, expand,
@@ -68,7 +69,7 @@ def main():
     ap.add_argument("--force", action="store_true",
                     help="忽略本地文件全部重导（会推高服务端下载计数，慎用）")
     ap.add_argument("--no-repair", action="store_true",
-                    help="禁用「type=1,2,3 + 剥译文」修复路径，锁死课次直接走拆分兜底")
+                    help="禁用修复路径（逐个换 1,2,3 / 1,2,4 缓存 key），锁死课次直接走拆分兜底")
     ap.add_argument("--dry-run", action="store_true", help="只报告计划，不调导出接口")
     ap.add_argument("--list", action="store_true", help="只列出课次清单")
     ap.add_argument("--keep-session", action="store_true", help="结束后不关浏览器会话")
@@ -235,7 +236,6 @@ def main():
         normal = [it for it in runnable if it["mode"] == "normal"]
         repair = [it for it in runnable if it["mode"] == "repair"]
         saved, shells, failed = [], [], []
-        n_repaired = 0
 
         # ---- 第一层：原生 type=1,2。形态最好、零损耗，正常课次都走这里。
         if normal:
@@ -265,30 +265,41 @@ def main():
             rl = {it["file"] for it in repair}
             shells += [(l, w) for l, w in h1 if l not in rl]
 
-        # ---- 第二层（修复）：type=1,2,3 是**另一个缓存 key**，未受污染。
-        #      生成后本地剥掉译文段，即等价于 type=1,2 的合并版。
-        #      这是被锁死课次唯一能拿回合并版形态的途径。
-        if repair:
-            print("\n修复：%d 节改用 type=%s（独立缓存 key）重取并剥掉译文段 ..."
-                  % (len(repair), EXPORT_MERGE_ALL))
+        # ---- 第二层（修复）：逐个换用**未被污染的缓存 key**，直到拿到合并版。
+        #      "1,2,3" 多一份英文译文，本地剥掉即等价于原生 "1,2"；
+        #      "1,2,4" 多一份 AI 摘要，实测导出成 Word 时没混进正文，下载即用。
+        #      一个课次可能**多个 key 先后被污染**（识别跑完前被导出过多次就会这样），
+        #      所以是「逐个试」，不是「只试一个」。
+        for cand_types in EXPORT_MERGE_CANDIDATES:
+            if not repair:
+                break
+            print("\n修复：%d 节改用 type=%s（独立缓存 key）重取%s ..."
+                  % (len(repair), cand_types,
+                     "并剥掉译文段" if "3" in cand_types else ""))
             items = [(it["sub"]["sub_id"], it["file"]) for it in repair]
-            r_all = export_batch(backend, items, types=EXPORT_MERGE_ALL)
+            r_all = export_batch(backend, items, types=cand_types)
             jobs_all = []
             for it in repair:
                 it["sub"]["_result"] = r_all.get(it["sub"]["sub_id"]) or {}
                 it["sub"]["_label"] = it["file"]
                 jobs_all.append((it["sub"], it["path"], "merge_all"))
-            s2, h2, f2 = harvest(backend, dest, jobs_all, label_prefix="[修复] ")
+            s2, h2, f2 = harvest(backend, dest, jobs_all,
+                                 label_prefix="[修复 %s] " % cand_types)
             saved += s2
             failed += f2
-            hit = {lbl for lbl, _ in h2}
-            done = [it for it in repair if it["file"] not in hit]
-            n_repaired = len(done)
+            ok = {lbl for lbl, _sz, _inf in s2}
             # 合并版到手 -> 清掉此前遗留的拆分兜底产物
-            for it in done:
-                clean_fallback(dest, it["sub"]["course_title"], it["sub"]["sub_title"])
-            repair = [it for it in repair if it["file"] in hit]
-            shells += h2
+            for it in repair:
+                if it["file"] in ok:
+                    clean_fallback(dest, it["sub"]["course_title"],
+                                   it["sub"]["sub_title"])
+            # 只有真正落盘的才算修好；本轮空壳 / 触发失败的留给下一个候选
+            repair = [it for it in repair if it["file"] not in ok]
+            shells += [(l, "%s 下 - %s" % (cand_types, w)) for l, w in h2]
+
+        if repair:
+            print("\n      ⤷ 修复 key（%s）全部只返回空壳，转拆分兜底。"
+                  % "、".join(EXPORT_MERGE_CANDIDATES))
 
         # ---- 第三层（兜底）：合并版两个 key 都没救回来时，退回拆分产物：
         #        type=2 -> 纯字幕 _字幕.docx
@@ -328,6 +339,10 @@ def main():
             shells = [(l, w) for l, w in shells if l not in fb]
             shells += [(l, "字幕 - " + w) for l, w in shells_sub]
             shells += [(l, "课件 - " + w) for l, w in shells_deck]
+
+        # 修复过程中先报空壳、换 key 后成功的课次，不该同时出现在"未通过校验"里
+        ok_final = {lbl for lbl, _sz, _inf in saved}
+        shells = [(l, w) for l, w in shells if l not in ok_final]
 
         print("\n================ 同步结果 ================")
         print("目录        : %s" % dest)
