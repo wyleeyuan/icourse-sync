@@ -1,7 +1,7 @@
 {
   "_comment": "复制成 config.json 后按需修改；只有 dest 是必须关心的。",
 
-  "dest": "~/Desktop/课程资料/语音课件",
+  "dest": "~/Desktop/语音课件",
   "_dest_comment": "产物目录。~ 展开成用户主目录（Windows 上是 C:/Users/你的名字）。若桌面被 OneDrive 接管导致路径不对，改成完整路径即可，正反斜杠都认。",
 
   "tenant_code": "222",
