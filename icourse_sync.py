@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """复旦 icourse 语音课件增量同步 —— 单文件 · 纯标准库 · 零第三方依赖。
 
-产物：<dest>/<课程名>/<课程名>_<课次>_语音课件.docx
+产物：<dest>/<课程名>/课件/<课程名>_<课次>_语音课件.docx
       内容 = 课件录屏截图 + 带时间轴的语音识别原文，按时间对齐。
 
 登录态：项目根目录的 cookie.txt，内容是整条 Cookie 请求头。
@@ -32,7 +32,7 @@ TENANT = "222"                 # 复旦租户号
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36")
 
-DEFAULT_DEST = "~/Documents/语音课件"
+DEFAULT_DEST = "~/Documents/课程"
 
 NATIVE_TYPES = "1,2"                      # 原生：1=课件截图 2=语音识别原文
 REPAIR_KEYS = ("1,2,3", "1,2,4")          # 缓存被锁死成空壳时，换个 key 重取
@@ -197,7 +197,7 @@ def safe_name(s):
 
 def target_path(dest, course_title, sub_title):
     fn = "%s_%s_语音课件.docx" % (safe_name(course_title), safe_name(sub_title))
-    return dest / safe_name(course_title) / fn
+    return dest / safe_name(course_title) / "课件" / fn
 
 
 def inspect_docx(path):

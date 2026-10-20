@@ -23,7 +23,7 @@ code=$?
 
 echo
 if [ "$code" -eq 0 ]; then
-  echo "完成。产物在 $HOME/Documents/语音课件"
+  echo "完成。课件已写入上面打印的「目标目录」。"
 else
   echo "退出码 $code —— 上面有报错，按提示处理即可。"
 fi

@@ -1,6 +1,9 @@
 # 敏感信息 —— 千万别提交
 config.json
 cookie.txt
+cookie.txt.bak.*
+cookie*.bak
+*.cookies
 
 # 本地技术文档（接口逆向细节、实测记录、踩坑笔记）—— 只留本地，不上传
 notes/
